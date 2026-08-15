@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>LayMA Bypass</title>
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --border: #2a2a35;
+    --accent: #7c3aed;
+    --accent2: #a855f7;
+    --text: #e2e2e9;
+    --muted: #6b6b80;
+    --success: #22c55e;
+    --error: #ef4444;
+    --warn: #f59e0b;
+    --radius: 12px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .header p {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+
+  input[type="url"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.95rem;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="url"]:focus { border-color: var(--accent); }
+  input[type="url"]::placeholder { color: var(--muted); }
+
+  button {
+    width: 100%;
+    margin-top: 14px;
+    padding: 13px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .log-card { display: none; }
+  .log-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    height: 260px;
+    overflow-y: auto;
+    padding: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+    line-height: 1.6;
+  }
+  .log-line { color: var(--muted); word-break: break-all; }
+  .log-line.ok  { color: var(--success); }
+  .log-line.err { color: var(--error); }
+  .log-line.warn{ color: var(--warn); }
+
+  .result-card { display: none; }
+  .result-url {
+    background: var(--bg);
+    border: 1px solid var(--success);
+    border-radius: 8px;
+    padding: 12px 14px;
+    word-break: break-all;
+    font-size: 0.88rem;
+    color: var(--success);
+    margin-bottom: 12px;
+  }
+  .copy-btn {
+    margin-top: 0;
+    background: var(--success);
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .step-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge-running { background: #1e3a5f; color: #60a5fa; }
+  .badge-done    { background: #14532d; color: var(--success); }
+  .badge-fail    { background: #450a0a; color: var(--error); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ LayMA Bypass</h1>
+  <p>Tự động bypass mọi link rút gọn LayMA</p>
+</div>
+
+<div class="card">
+  <label>Link LayMA</label>
+  <input type="url" id="url-input" placeholder="https://layma.net/xxxx" autocomplete="off" spellcheck="false">
+  <button id="bypass-btn" onclick="startBypass()">⚡ Bypass</button>
+</div>
+
+<div class="card log-card" id="log-card">
+  <label id="status-label">
+    <span class="spinner" id="spinner"></span>
+    Đang xử lý…
+  </label>
+  <div class="log-box" id="log-box"></div>
+</div>
+
+<div class="card result-card" id="result-card">
+  <label>✅ Link gốc</label>
+  <div class="result-url" id="result-url"></div>
+  <button class="copy-btn" onclick="copyResult()">📋 Copy link</button>
+</div>
+
+<script>
+let evtSource = null;
+
+function log(msg, cls = '') {
+  const box = document.getElementById('log-box');
+  const line = document.createElement('div');
+  line.className = 'log-line' + (cls ? ' ' + cls : '');
+  line.textContent = msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function startBypass() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url || !url.includes('layma')) {
+    alert('Nhập link layma.net hợp lệ');
+    return;
+  }
+
+  document.getElementById('bypass-btn').disabled = true;
+  document.getElementById('log-card').style.display = 'block';
+  document.getElementById('result-card').style.display = 'none';
+  document.getElementById('log-box').innerHTML = '';
+  document.getElementById('status-label').innerHTML =
+    '<span class="spinner" id="spinner"></span> Đang xử lý…';
+
+  if (evtSource) evtSource.close();
+  evtSource = new EventSource('/bypass?url=' + encodeURIComponent(url));
+
+  evtSource.onmessage = (e) => {
+    const msg = e.data;
+    if (msg.startsWith('RESULT:')) {
+      const result = msg.slice(7);
+      evtSource.close();
+      document.getElementById('bypass-btn').disabled = false;
+      document.getElementById('spinner') && (document.getElementById('spinner').style.display = 'none');
+
+      if (result === 'ERROR') {
+        document.getElementById('status-label').innerHTML =
+          '<span class="step-badge badge-fail">FAILED</span> Bypass thất bại';
+        log('❌ Không lấy được link gốc.', 'err');
+      } else {
+        document.getElementById('status-label').innerHTML =
+          '<span class="step-badge badge-done">DONE</span> Bypass thành công!';
+        document.getElementById('result-card').style.display = 'block';
+        document.getElementById('result-url').textContent = result;
+        log('✓ ' + result, 'ok');
+      }
+      return;
+    }
+
+    let cls = '';
+    if (msg.includes('✓') || msg.includes('Solved') || msg.includes('thành công')) cls = 'ok';
+    else if (msg.includes('Error') || msg.includes('failed') || msg.includes('FATAL')) cls = 'err';
+    else if (msg.includes('Waiting') || msg.includes('Ping') || msg.includes('changing')) cls = 'warn';
+    log(msg, cls);
+  };
+
+  evtSource.onerror = () => {
+    evtSource.close();
+    document.getElementById('bypass-btn').disabled = false;
+    log('❌ Kết nối SSE bị mất.', 'err');
+  };
+}
+
+function copyResult() {
+  const text = document.getElementById('result-url').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✅ Đã copy!';
+    setTimeout(() => btn.textContent = '📋 Copy link', 2000);
+  });
+}
+</script>
+</body>
+</html>
